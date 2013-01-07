@@ -1,11 +1,11 @@
 { 
-	"name": "twostep",
-	"version": "0.5.0",
-	"description": "A simple control-flow library for node.JS that makes parallel execution, serial execution, and error handling painless.",
+	"name": "flowy",
+	"version": "0.1.0",
+	"description": "A flow-control framework for Node.js inspired by CommonJS promises and Step framework.",
 	"engine": [ "node >=0.2.0" ],
 	"repository": {
 		"type" : "git",
-		"url" : "https://github.com/2do2go/node-twostep"
+		"url" : "https://github.com/geeqie/node-flowy"
 	},
 	"devDependencies" : {
 		"jasmine-node": "1.0.21"
