@@ -77,7 +77,7 @@ describe('Step usage', function() {
                 afun(this.slot());
                 this.pass('test');
 
-                var group = this.makeGroup();
+                var group = this.slotGroup();
                 for (var i = 0; i < 5; i++) {
                     group.pass('test' + i);
                 }

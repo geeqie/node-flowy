@@ -117,11 +117,11 @@ describe('Testing group functionality', function() {
         });
     });
 
-    it('Creating dependent group via makeGroup', function(done) {
+    it('Creating dependent group via slotGroup', function(done) {
         G.chain(function() {
             this.pass('pass');
             afun(this.slot());
-            this.makeGroup().fcall(function() {
+            this.slotGroup().fcall(function() {
                 this.pass('pass2');
                 afun(this.slot());
             });
