@@ -65,6 +65,17 @@ describe('Testing group functionality', function() {
         });
     });
 
+    it('resolving a group with empty args', function(done) {
+        new G().resolve().anyway(done);
+    });
+
+    it('erroring a group', function(done) {
+        new G().error('hello').anyway(function(err) {
+            expect(err).toBe('hello');
+            done();
+        });
+    });
+
     it('Propagating value if no callback given', function(done) {
         var error = new Error('Hello error');
         G.chain(function() {
@@ -72,7 +83,7 @@ describe('Testing group functionality', function() {
         }).then(null, function(err) {
             //never should be called
             expect(1).toBe(2);
-        }).then(function(err, text) {
+        }).anyway(function(err, text) {
             expect(text).toBe(standard);
             done(err);
         });
@@ -85,7 +96,7 @@ describe('Testing group functionality', function() {
         }).then(function(err) {
             //never should be called
             expect(1).toBe(2);
-        }).whatever(function(err) {
+        }).anyway(function(err) {
             expect(err).toBe(error);
             done();
         });
@@ -100,7 +111,7 @@ describe('Testing group functionality', function() {
             expect(1).toBe(2);
         }).then(null, function(err) {
             afun(this.slot());
-        }).whatever(function(err, text) {
+        }).anyway(function(err, text) {
             expect(text).toBe(standard);
             done(err);
         });
@@ -114,7 +125,7 @@ describe('Testing group functionality', function() {
                 this.pass('pass2');
                 afun(this.slot());
             });
-        }).whatever(function(err, sync, async, group) {
+        }).anyway(function(err, sync, async, group) {
             expect(sync).toBe('pass');
             expect(async).toBe(standard);
             expect(group[0]).toBe('pass2');
