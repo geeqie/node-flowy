@@ -64,9 +64,9 @@ function leaveMessage(username, text, callback) {
 
 ### Terminology
 
-* **Flowy**: a wrapper allowing to combine steps of execution in a waterfall manner.
-* **Step**: a function executed by the *Flowy* in the context of a *Group* and deciding what data will be passed to the next *Step*.
-* **Group**: the core of the *Flowy* library, guarantees all sync and async data to be collected into the one single place and passed to the appropriate handler.
+- **Flowy**: a wrapper allowing to combine steps of execution in a waterfall manner.
+- **Step**: a function executed by the *Flowy* in the context of a *Group* and deciding what data will be passed to the next *Step*.
+- **Group**: the core of the *Flowy* library, guarantees all sync and async data to be collected into the one single place and passed to the appropriate handler.
 
 
 ### How it works
