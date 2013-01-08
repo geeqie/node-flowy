@@ -1,135 +1,240 @@
-TwoStep
-=======
-A simple control-flow library for node.JS that makes parallel execution, 
-serial execution, and error handling painless. Based on gist https://gist.github.com/1524578
+# Flowy #
 
-In different to that gist was added test coverage, try ... catch blocks for all steps and some usefull wrappers.
+A flow-control library for Node.js inspired by [TwoStep](https://github.com/2do2go/node-twostep])
+and CommonJS promises (especial appreciation to the [Q library](https://github.com/kriskowal/q)
+for its convenient API design).
 
-Installation
------------
+Features:
+* flattening of the callback chain;
+* encouraging Node.js-style function and callback interfaces;
+* managing parallel execution of asynchronous calls;
+* automatic error handling and propagation;
+* uniformly handling asynchronous and synchronous data flow.
 
-    npm install twostep
     
-Usage
------------
+## Getting started ##
 
-  All callbacks are executing in theirs steps.
-  
-    var TwoStep = require('twostep');
-    var FS = require('fs');
- 
-    TwoStep(
-      function one() {
-        this.pass(__filename + ".bak");
-        FS.readFile(__filename, 'utf8', this.slot());
-      },
-      function two(err, target, contents) {
-        if (err) throw err;
-        this.pass(target);
-        FS.writeFile(target, contents, this.slot())
-      },
-      function three(err, target) {
-        if (err) throw err;
-        console.log("%s written to successfully", target);
-        FS.readdir(__dirname, this.slot());
-      },
-      function four(err, fileNames) {
-        if (err) throw err;
-        this.pass(fileNames);
-        var group = this.makeGroup();
-        fileNames.forEach(function (filename) {
-          FS.stat(filename, group.slot());
-        });
-      },
-      function five(err, fileNames, stats) {
-        if (err) throw err;
-        this.pass(fileNames.filter(function (name, i) {
-          return stats[i].isFile();
-        }));
-        var group = this.makeGroup();
-        stats.forEach(function (stat, i) {
-          if (stat.isFile()) FS.readFile(fileNames[i], 'utf8', group.slot());
-        });
-      },
-      function six(err, fileNames, contents) {
-        if (err) throw err;
-        var merged = {};
-        fileNames.forEach(function (name, i) {
-          merged[name] = contents[i].substr(0, 80);
-        });
-        console.log(merged);
-      }
-    );
-  
-  This can be some simple if we will use wrappers.
-  
-    var TwoStep = require('twostep');
-    var FS = require('fs');
-    
-    TwoStep(
-        TwoStep.simple(function() {
-    		this.pass(__filename + ".bak");
-    		FS.readFile(__filename, 'utf8', this.slot());
-    	}),
-    	TwoStep.throwIfError(function(err, target, contents) {
-    		this.pass(target);
-    		FS.writeFile(target, contents, this.slot())
-    	}),
-    	TwoStep.throwIfError(function(err, target) {
-    		console.log("%s written to successfully", target);
-    		FS.readdir(__dirname, this.slot());
-    	}),
-    	TwoStep.throwIfError(function(err, fileNames) {
-    		this.pass(fileNames);
-    		var group = this.makeGroup();
-    		fileNames.forEach(function(filename) {
-    			FS.stat(filename, group.slot());
-    		});
-    	}),
-    	TwoStep.throwIfError(function(err, fileNames, stats) {
-    		this.pass(fileNames.filter(function(name, i) {
-    			return stats[i].isFile();
-    		}));
-    		console.log(fileNames)
-    		var group = this.makeGroup();
-    		stats.forEach(function(stat, i) {
-    			if (stat.isFile()) {
-    				FS.readFile(fileNames[i], 'utf8', group.slot());
-    			}
-    		});
-    	}),
-    	TwoStep.throwIfError(function(err, fileNames, contents) {
-    		var merged = {};
-    		fileNames.forEach(function (name, i) {
-    			merged[name] = contents[i].substr(0, 80);
-    		});
-    		console.log(merged);
-    	}),
-        TwoStep.simple(function(err) {
-		    if (err) {
-			    console.log('Do something to handle error');
-		    }
-	    })
-    );
-    
-Wrapper TwoStep.throwIfError free you of all time writing
+Without the help of any tool, asynchronous javascript code can quickly become a pain:
+```javascript
+function leaveMessage(username, text, callback) {
+	model.users.find(username, function(err, user) {
+		if (err) return callback(err);
+		if (!user) return callback(new Error('user not found'));
+		model.messages.create(user, text, function(err, message) {
+			if (err) return callback(err);
+			model.notifications.create(message, function(err, notification) {
+				callback(err, notification);
+			});
+		});
+	});
+}
+```
 
-     if (err) throw err;
+On the other hand, asynchronous flow management in Node.js can be that simple:
+```javascript
+function leaveMessage(username, text, callback) {
+	Flowy(
+		function() {
+			model.users.find(username, this.slot());
+		},
+		function(err, user) {
+			if (!user) throw new Error('user not found');
+			model.messages.create(user, text, this.slot());
+		},
+		function(err, message) {
+			model.notifications.create(message, this.slot());
+		},
+		callback //any error will be automatically propagated to this point
+	);
+}
+```
+
+### Terminology
+
+* **Flowy**: a wrapper allowing to combine steps of execution in a waterfall manner.
+* **Step**: a function executed by the *Flowy* in the context of a *Group* and deciding what data will be passed to the next *Step*.
+* **Group**: the core of the *Flowy* library, guarantees all sync and async data to be collected into the one single place and passed to the appropriate handler.
+
+
+### How it works
+
+`Flowy()` function starts executing its arguments in the waterfall manner, passing results of
+the previous step to the next. Every step is run in the context of Flowy's *Group*, which
+guarantees all the data will be collected before the next step begins. To notify that you want
+to pass any asynchronous data to the next step, you pass to the ordinary async function as a callback
+param one of the Group's hooks (in this example, `this.slot()`). When this callback is eventually 
+called, Group becomes resolved and the flow passes to the next step.
+
+Any error occurred during the step execution (passed to the Group's callback) will be immediately
+propagated to the last step of the Flowy. If an error is thrown from the last step, it will stay
+unhandled.
+
+
+## Tutorial ##
+
+To understand the principle of the *Flowy* waterfall, let's start from the exploring of its core.
+
+
+### Flowy Group
+
+At first glance a *Group* seems to resemble CommonJS promises, it also matches promise [terminology](http://howtonode.org/promises):
+* *Fulfillment*: When a successful promise is fulfilled, all of the pending callbacks are called with the value. If more callbacks are registered in the future, they will be called with the same value. Fulfilment is the asynchronous analog for returning a value.
+* *Rejection*: When a promise cannot be fulfilled, a promise is 'rejected' which invokes the errbacks that are waiting and remembers the error that was rejected for future errbacks that are attached. Rejection is the asynchronous analog for throwing an exception.
+* *Resolution*: A promise is resolved when it makes progress toward fulfillment or rejection. A promise can only be resolved once, and it can be resolved with a promise instead of a fulfillment or rejection.
+* *Callback*: A function executed if a a promise is fulfilled with a value.
+* *Errback*: A function executed if a promise is rejected, with an exception.
+
+The main difference is that a *Group* should be treated like a group of promises, all executing concurrently, and
+a group would be resolved either every its promise is fulfilled or any of the promises becomes rejected.
+
+On the group resolution, it will be ready to pass to its callbacks the values of all resolved promises - its *slots*.
+Every slot should be treated as an argument eventually passed to the group's callback: 
+`callback(err, slot1, slot2, ...)`.
+
+#### Creation
+To create a new group, simply call
+```
+Flowy.group()
+//or
+new Flowy.Group()
+```
+When it is created, nothing happens. The group keeps the unresolved state until every its slot becomes resolved.
+Freshly created group has no slots, so you'll want to reserve a couple.
+
+### Handling resolution
+A group can be resolved in two ways: successfully or not. To handle these situations, there are four methods.
+Each of callback methods accepts callbacks in the standard form: `function(err, value1, value2, ...)`. 
+```javascript
+//handling both success and error:
+group.then(callback, errback);
+
+//handling only success:
+group.then(callback);
+
+//handling only failure:
+group.fail(errback); //shortcut for:
+group.then(null, errback);
+
+//handling any situation:
+group.anyway(callback); //shortcut for:
+group.then(callback, callback);
+```
+
+### Chaining callbacks
+Each callback is executed the context of its own group. Callback methods described above return this group,
+making possible chaining of groups. 
+
+If no callback is passed to the group, slots resolved by the group will be propagated down the chain
+until handled; if no errback is passed to the group, the error will be propagated down the chain in the same way:
+```javascript
+group.error(
+	new Error('whoops')
+).then(function(err) {
+	//will not be called, error is propagating further
+}).then(null, function(err) {
+	//error was propagated to the nearest handler
+	this.pass(err.message);
+}).fail(function(err) {
+	//will not be called, error was handled in the previous step
+	//message is propagating further
+}).anyway(function(err, message) {
+	//if there were no error handlers in the middle, err it would be cought here
+	//message was propagated here 
+	console.log(message);
+});
+```
+The drawaback of this approach is the possibility of losing an error thrown from the last callback in the chain.
+It happens because it is executed in the group's try-catch sandbox. To prevent the last callback from sandboxing
+(and from executing in the group's context), there is method to end the chain:
+```javascript
+//similar to `group.anyway()` but without wrapping a callback into the group's sandbox
+group.end(callback);
+```
+
+#### Slot reservation
+All slots reserved in a group will be resolved in parallel.
+
+To reserve an asynchronous slot, call `group.slot()`. This method returns a callback function `function(err, value)`.
+The slot will be resolved with the value passet to this callback.
+
+To fill one or more slots with immediate values, use `group.pass(value1, value2, ...)`. The corresponding slots
+will be resolved with these values on the next Node tick.
+
+There is also a helper method to reserve a slot: `group.slotGroup()` which returns another group. The slot will be
+resolved on this dedicated group resolution.
+
+```javascript
+group.then(function() {
+	this.pass('message');
+	model.users.find('Alexander', this.slot());
+	var group = this.slotGroup();
+	['Kate', 'Nicky', 'Anna'].forEach(function(girl) {
+		model.users.find(girl, group.slot());
+	})
+}).end(function(err, text, alexander, girls) {
+	//doing stuff
+})
+```
+
+### Manually resolve group
+There are two ways to manually resolve group ignoring all its reserved slots:
+```javascript
+//immediately resolve group with the given slots
+group.resolve(err, slot1, slot2, slot3); 
+
+//resolve group with the given error
+group.error(err); //an alias to group.resolve(err)
+```
+All group's callbacks will be triggered on the next Node tick. Methods return group to allow further chaining.
+
+### Wrapping and executing functions
+To execute a function in the group's context and sandbox, there are analogues of `call` and `apply` methods:
+```javascript
+group.fcall(fn, arg1, arg2, arg3);
+group.fapply(fn, [arg1, arg2, arg3]);
+```
+Each method returns a group to make chaining possible:
+```javascript
+function getUserMessages(username, callback) {
+	Flowy.group().fcall(function() {
+		model.users.find('Alex', this.slot());
+		model.messages.find('Alex', this.slot());
+	}).then(function(err, user, messages) {
+		messages.forEach(function(message) {
+			message.recipient = user;
+		});
+		this.pass(messages);
+	}).end(callback)
+}
+```
+
+### Starting a chain
+To make starting a chain easier, there are two static methods of the `Group` class:
+```javascript
+//starting a chain with the function, 
+//analogous to new Group().fcall(fn, arg1, arg2)
+Group.chain(fn, arg1, arg2);
+
+//starting a chain with the immediate slot values
+//atalogous to new Group().resolve(err, slot1, slot2)
+Group.when(err, slot1, slot2);
+```
+Both methods return group of the chain head;
+
+
+## Installation ##
+
+```
+npm install flowy
+```
      
-All steps throwIfError will be skipped. Error just will be passed through the steps.
-To handle it you can use 
+## Testing ##
 
-    TwoStep.simple(function(err) {}) 
-    
-or something other function, that get error in first parameter.
-It's very usefull for common mechanism of error handling.
-        
-Test
-------
-In project folder just run:
-
-    npm install
-    
-After installtion run:
-
-    npm test
+In project root run:
+```
+npm install
+``` 
+After all development dependencies are installed run:
+```
+npm test
+```
