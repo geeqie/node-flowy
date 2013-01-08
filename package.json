@@ -1,7 +1,7 @@
 { 
 	"name": "flowy",
 	"version": "0.1.0",
-	"description": "A flow-control framework for Node.js inspired by CommonJS promises and Step framework.",
+	"description": "A flow-control framework for Node.js inspired by CommonJS promises and the Step framework.",
 	"engine": [ "node >=0.2.0" ],
 	"repository": {
 		"type" : "git",
@@ -13,5 +13,5 @@
 	"scripts": {
 		"test": "./node_modules/jasmine-node/bin/jasmine-node ./spec/"
 	},
-	"main": "lib/twoStep"
+	"main": "lib/flowy"
 }

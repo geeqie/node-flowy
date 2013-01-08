@@ -1,5 +1,5 @@
 'use strict';
-var G = require('../../lib/twoStep').Group,
+var G = require('../../lib/flowy').Group,
     fs = require('fs');
 
 var standard = fs.readFileSync(__filename, 'utf8');
@@ -14,6 +14,21 @@ describe('Testing group functionality', function() {
         group.then(function(err, text) {
             expect(standard).toEqual(text);
             done(err);
+        });
+    });
+
+    it('Starting chain with `when`', function(done) {
+        var error = new Error('hello');
+        G.when(
+            error
+        ).fail(function(err) {
+            expect(err).toBe(error);
+            G.when(
+                null, 'message'
+            ).anyway(function(err, message) {
+                expect(message).toBe('message');
+                done(err);
+            });
         });
     });
 
@@ -53,8 +68,8 @@ describe('Testing group functionality', function() {
         });
     });
 
-    it('Wrapping a function', function(done) {
-        var promise = new G().wrap(function(val) {
+    it('Wrapping a function in the group-sandbox', function(done) {
+        var promise = new G().fbind(function(val) {
             this.pass(val);
             afun(this.slot());
         });

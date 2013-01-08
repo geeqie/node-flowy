@@ -1,6 +1,6 @@
 'use strict';
 
-var Step = require('../../lib/twoStep').Step,
+var Flowy = require('../../lib/flowy'),
     fs = require('fs');
 
 var standard = fs.readFileSync(__filename, 'utf8');
@@ -13,18 +13,18 @@ function echoAsync(val, callback) {
     });
 }
 
-describe('Step usage', function() {
+describe('Flowy usage', function() {
 
     it('calling step with less than two steps', function() {
         try {
-            Step();
+            Flowy();
         } catch(e) {
             expect(e).toBeTruthy();
         }
     });
 
     it('simple function chaining', function(done) {
-        Step(
+        Flowy(
             function() {
                 //parallel execution of async calls
                 afun(this.slot());
@@ -47,23 +47,18 @@ describe('Step usage', function() {
         );
     });
 
-    it('Handling errors on the way', function(done) {
+    it('should throw error and catch it in last callback', function(done) {
         var error = new Error("hello error!");
-        Step(
+        Flowy(
             function() {
-                throw(error);
+                throw error;
             },
             function(err) {
-                expect(err).toBe(error);
-                this.pass(null);
+                done(new Error('should not be there'));
             },
             function(err) {
-                expect(err).toBeFalsy();
-                throw(error);
+                done(new Error('should not be there'));
             },
-            Step.throwIfError(function(err) {
-                done(new Error('should not be here'));
-            }),
             function(err) {
                 expect(err).toEqual(error);
                 done();
@@ -72,7 +67,7 @@ describe('Step usage', function() {
     });
 
     it('sync values are handled asynchronously', function(done) {
-        Step(
+        Flowy(
             function() {
                 afun(this.slot());
                 this.pass('test');
@@ -97,8 +92,8 @@ describe('Step usage', function() {
     });
 
     it('simple combined function test', function(done) {
-        var multifun = Step.fn(
-            function(val) {
+        var multifun = Flowy.compose(
+            function(err, val) {
                 echoAsync(val, this.slot());
             },
             function(err, text) {
@@ -106,7 +101,7 @@ describe('Step usage', function() {
             }
         );
 
-        Step(
+        Flowy(
             function() {
                 afun(this.slot());
             },
