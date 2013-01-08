@@ -1,6 +1,6 @@
 'use strict';
 
-var Flowy = require('../../lib/flowy'),
+var Flowy = require('../lib/flowy'),
     fs = require('fs');
 
 var standard = fs.readFileSync(__filename, 'utf8');

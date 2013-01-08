@@ -1,5 +1,5 @@
 'use strict';
-var G = require('../../lib/flowy').Group,
+var G = require('../lib/flowy').Group,
     fs = require('fs');
 
 var standard = fs.readFileSync(__filename, 'utf8');
