@@ -33,6 +33,19 @@ function leaveMessage(username, text, callback) {
 On the other hand, asynchronous flow management in Node.js can be that simple:
 ```javascript
 function leaveMessage(username, text, callback) {
+	Flowy.chain(function() {
+		model.users.findOne(username, this.slot());
+	}).then(function(err, user) {
+		if (!user) throw new Error('user not found');
+		model.messages.create(user, text, this.slot());
+	}).then(function(err, message) {
+		model.notifications.create(message, this.slot());
+	}).end(callback); //any error will be automatically propagated to this point
+}
+```
+or that simple:
+```javascript
+function leaveMessage(username, text, callback) {
 	Flowy(
 		function() {
 			model.users.findOne(username, this.slot());
