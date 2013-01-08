@@ -17,7 +17,7 @@ Features:
 Without the help of any tool, asynchronous javascript code can quickly become a pain:
 ```javascript
 function leaveMessage(username, text, callback) {
-	model.users.find(username, function(err, user) {
+	model.users.findOne(username, function(err, user) {
 		if (err) return callback(err);
 		if (!user) return callback(new Error('user not found'));
 		model.messages.create(user, text, function(err, message) {
@@ -35,7 +35,7 @@ On the other hand, asynchronous flow management in Node.js can be that simple:
 function leaveMessage(username, text, callback) {
 	Flowy(
 		function() {
-			model.users.find(username, this.slot());
+			model.users.findOne(username, this.slot());
 		},
 		function(err, user) {
 			if (!user) throw new Error('user not found');
@@ -101,7 +101,22 @@ new Flowy.Group()
 When it is created, nothing happens. The group keeps the unresolved state until every its slot becomes resolved.
 Freshly created group has no slots, so you'll want to reserve a couple.
 
-### Handling resolution
+#### Slot reservation
+All slots reserved in a group will be resolved in parallel. The *order of the slot reservation will be preserved*
+independent of the order of slot resolution.
+
+To reserve an asynchronous slot, call `group.slot()`. This method returns a callback function `function(err, value)`.
+The slot will be resolved with the value passet to this callback.
+
+To fill one or more slots with immediate values, use `group.pass(value1, value2, ...)`. The corresponding slots
+will be resolved with these values on the next Node tick.
+
+There is also a helper method to reserve a slot: `group.slotGroup()` which returns another group. The slot will be
+resolved on this dedicated group resolution.
+
+The usage examples will be given a bit later.
+
+#### Handling resolution
 A group can be resolved in two ways: successfully or not. To handle these situations, there are four methods.
 Each of callback methods accepts callbacks in the standard form: `function(err, value1, value2, ...)`. 
 ```javascript
@@ -120,10 +135,24 @@ group.anyway(callback); //shortcut for:
 group.then(callback, callback);
 ```
 
-### Chaining callbacks
-Each callback is executed the context of its own group. Callback methods described above return this group,
-making possible chaining of groups. 
+#### Chaining callbacks
+Each callback is executed the context (`this` variable) of its own group. 
+Callback methods described above return the future context of the callback, making possible chaining of groups.
+```javascript
+//a group was acquired elsewhere earlier
+group.then(function() {
+	this.pass('message');
+	model.users.findOne('Alexander', this.slot());
+	var group = this.slotGroup();
+	['Kate', 'Nicky', 'Anna'].forEach(function(girl) {
+		model.users.findOne(girl, group.slot());
+	})
+}).then(function(err, text, alexander, girls) {
+	//doing stuff
+})
+```
 
+#### Result propagation
 If no callback is passed to the group, slots resolved by the group will be propagated down the chain
 until handled; if no errback is passed to the group, the error will be propagated down the chain in the same way:
 ```javascript
@@ -151,32 +180,7 @@ It happens because it is executed in the group's try-catch sandbox. To prevent t
 group.end(callback);
 ```
 
-#### Slot reservation
-All slots reserved in a group will be resolved in parallel.
-
-To reserve an asynchronous slot, call `group.slot()`. This method returns a callback function `function(err, value)`.
-The slot will be resolved with the value passet to this callback.
-
-To fill one or more slots with immediate values, use `group.pass(value1, value2, ...)`. The corresponding slots
-will be resolved with these values on the next Node tick.
-
-There is also a helper method to reserve a slot: `group.slotGroup()` which returns another group. The slot will be
-resolved on this dedicated group resolution.
-
-```javascript
-group.then(function() {
-	this.pass('message');
-	model.users.find('Alexander', this.slot());
-	var group = this.slotGroup();
-	['Kate', 'Nicky', 'Anna'].forEach(function(girl) {
-		model.users.find(girl, group.slot());
-	})
-}).end(function(err, text, alexander, girls) {
-	//doing stuff
-})
-```
-
-### Manually resolve group
+#### Manually resolving group
 There are two ways to manually resolve group ignoring all its reserved slots:
 ```javascript
 //immediately resolve group with the given slots
@@ -187,7 +191,7 @@ group.error(err); //an alias to group.resolve(err)
 ```
 All group's callbacks will be triggered on the next Node tick. Methods return group to allow further chaining.
 
-### Wrapping and executing functions
+#### Wrapping and executing functions
 To execute a function in the group's context and sandbox, there are analogues of `call` and `apply` methods:
 ```javascript
 group.fcall(fn, arg1, arg2, arg3);
@@ -196,8 +200,9 @@ group.fapply(fn, [arg1, arg2, arg3]);
 Each method returns a group to make chaining possible:
 ```javascript
 function getUserMessages(username, callback) {
+	//we could do it better with Group.chain() method
 	Flowy.group().fcall(function() {
-		model.users.find('Alex', this.slot());
+		model.users.findOne('Alex', this.slot());
 		model.messages.find('Alex', this.slot());
 	}).then(function(err, user, messages) {
 		messages.forEach(function(message) {
@@ -208,19 +213,60 @@ function getUserMessages(username, callback) {
 }
 ```
 
-### Starting a chain
+#### Starting a chain
 To make starting a chain easier, there are two static methods of the `Group` class:
 ```javascript
 //starting a chain with the function, 
-//analogous to new Group().fcall(fn, arg1, arg2)
+//analogous to `new Group().fcall(fn, arg1, arg2)`
 Group.chain(fn, arg1, arg2);
 
 //starting a chain with the immediate slot values
-//atalogous to new Group().resolve(err, slot1, slot2)
+//analogous to `new Group().resolve(err, slot1, slot2)`
 Group.when(err, slot1, slot2);
 ```
-Both methods return group of the chain head;
+Both methods return group of the chain head.
 
+
+### Flowy
+Flowy is a thin wrapper that allows composing functions in a group chain.
+```
+Flowy.compose(step1, ..., stepN)
+``` 
+returns a `function(arg1, ..., argN, callback)` which initiates an execution of
+chained steps passing its `arg1, ..., argN` arguments to the first step as initial values
+and guarantees returning of the eventual result (or error) through its callback.
+
+```
+Flowy(step1, ..., stepN, callback)
+``` 
+is a shortcut for `Flowy.compose(step1, ..., stepN)(callback)` that immediately runs
+chained steps.
+
+Keeping that in mind, we can rewrite our `getUserMessages` function in the following way:
+```javascript
+function getUserMessages(username, callback) {
+	Flowy(
+		function() {
+			model.users.findOne('Alex', this.slot());
+			model.messages.find('Alex', this.slot());
+		},
+		function(err, user, messages) {
+			messages.forEach(function(message) {
+				message.recipient = user;
+			});
+			this.pass(messages);
+		},
+		callback
+	);
+}
+```
+
+`Flowy` also is very nice to mirror `Group` static methods, so you can start a group chain painlessly:
+```javascript
+Flowy.chain(/*...*/).then(/*...*/).end(/*...*/);
+Flowy.when(/*...*/).then(/*...*/).end(/*...*/);
+
+```
 
 ## Installation ##
 
