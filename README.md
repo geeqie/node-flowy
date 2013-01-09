@@ -184,7 +184,7 @@ group.then(function(err, message) {
 	var nested = this.slotGroup();
 	message.recipients.forEach(function(username) {
 		model.users.findOne(username, nested.slot());
-	})
+	});
 }).then(function(err, message, users) {
 	//doing stuff
 })
@@ -240,8 +240,8 @@ Each method returns a group to make chaining possible:
 function getUserMessages(username, callback) {
 	//we could do it better with Group.chain() method
 	Flowy.group().fcall(function() {
-		model.users.findOne('Alex', this.slot());
-		model.messages.find('Alex', this.slot());
+		model.users.findOne(username, this.slot());
+		model.messages.find(username, this.slot());
 	}).then(function(err, user, messages) {
 		messages.forEach(function(message) {
 			message.recipient = user;
@@ -285,8 +285,8 @@ Keeping that in mind, we can rewrite our `getUserMessages` function in the follo
 function getUserMessages(username, callback) {
 	Flowy(
 		function() {
-			model.users.findOne('Alex', this.slot());
-			model.messages.find('Alex', this.slot());
+			model.users.findOne(username, this.slot());
+			model.messages.find(username, this.slot());
 		},
 		function(err, user, messages) {
 			messages.forEach(function(message) {
