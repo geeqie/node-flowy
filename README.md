@@ -121,8 +121,8 @@ independent of the order of slot resolution. All slots will be passed to the gro
 
 To reserve an asynchronous slot, call `group.slot()`. This method returns a callback function 
 `function(err, data1, data2, ...)`. The slot will be resolved with the first data value passed to its callback.
-If called with a boolean `multi` argument - `group.slot(true)` - the reserved slot will be resolved with an array
-of data values passed to the callback: `[data1, data2, ...]`.
+If called with a boolean `multi` argument, the reserved slot will be resolved with an array of data values 
+passed to the callback: `[data1, data2, ...]`.
 ```javascript
 //reserving a slot for an asynchronous call
 var callback = group.slot();
