@@ -12,7 +12,7 @@ describe('Testing group functionality', function() {
         var group = new G();
         afun(group.slot());
         group.then(function(err, text) {
-            expect(standard).toEqual(text);
+            expect(text).toEqual(standard);
             done(err);
         });
     });
@@ -37,8 +37,8 @@ describe('Testing group functionality', function() {
             afun(this.slot());
             this.pass(standard);
         }).then(function(err, text1, text2) {
-            expect(standard).toEqual(text1);
-            expect(standard).toEqual(text2);
+            expect(text1).toEqual(standard);
+            expect(text2).toEqual(standard);
             done(err);
         });
     });
@@ -50,8 +50,8 @@ describe('Testing group functionality', function() {
             group2.then(this.slot());
             group2.then(this.slot());
         }).then(function(err, text1, text2) {
-            expect(standard).toEqual(text1);
-            expect(standard).toEqual(text2);
+            expect(text1).toEqual(standard);
+            expect(text2).toEqual(standard);
             done(err);
         });
     });
@@ -62,7 +62,7 @@ describe('Testing group functionality', function() {
         group.then(function(err, text) {
             expect(group.resolved).toEqual('fulfilled');
             group.then(function(err, text) {
-                expect(standard).toEqual(text);
+                expect(text).toEqual(standard);
                 done(err);
             });
         });
