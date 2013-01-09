@@ -6,6 +6,11 @@ var standard = fs.readFileSync(__filename, 'utf8');
 function afun(callback) {
     fs.readFile(__filename, 'utf8', callback);
 }
+function afunMultiArgs(callback) {
+    fs.readFile(__filename, 'utf8', function(err, text) {
+        callback(err, text, __filename);
+    });
+}
 
 describe('Testing group functionality', function() {
     it('Wrapping single async call', function(done) {
@@ -13,6 +18,17 @@ describe('Testing group functionality', function() {
         afun(group.slot());
         group.then(function(err, text) {
             expect(text).toEqual(standard);
+            done(err);
+        });
+    });
+
+    it('Handle all response arguments of the async call', function(done) {
+        var group = new G();
+        afunMultiArgs(group.slot('multi'));
+        group.then(function(err, response) {
+            expect(response.length).toBe(2);
+            expect(response[0]).toBe(standard);
+            expect(response[1]).toBe(__filename);
             done(err);
         });
     });

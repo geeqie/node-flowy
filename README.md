@@ -118,8 +118,10 @@ Freshly created group has no slots, so you'll want to reserve a couple.
 All slots reserved in a group will be resolved in parallel. The *order of the slot reservation will be preserved*
 independent of the order of slot resolution.
 
-To reserve an asynchronous slot, call `group.slot()`. This method returns a callback function `function(err, value)`.
-The slot will be resolved with the value passet to this callback.
+To reserve an asynchronous slot, call `group.slot()`. This method returns a callback function 
+`function(err, data1, data2, ...)`. The slot will be resolved with the first data value passed to its callback.
+If called with a boolean `multi` argument - `group.slot(true)` - the reserved slot will be resolved with an array
+of data values passed to the callback: `[data1, data2, ...]`.
 
 To fill one or more slots with immediate values, use `group.pass(value1, value2, ...)`. The corresponding slots
 will be resolved with these values on the next Node tick.
