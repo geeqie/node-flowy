@@ -5,11 +5,11 @@ and CommonJS promises (especial appreciation to the [Q library](https://github.c
 for its convenient API design).
 
 Features:
-* flattening of the callback chain;
-* encouraging Node.js-style function and callback interfaces;
-* managing parallel execution of asynchronous calls;
-* automatic error handling and propagation;
-* uniformly handling asynchronous and synchronous data flow.
+- flattening of the callback chain;
+- encouraging Node.js-style function and callback interfaces;
+- managing parallel execution of asynchronous calls;
+- automatic error handling and propagation;
+- uniformly handling asynchronous and synchronous data flow.
 
     
 ## Getting started ##
@@ -91,14 +91,14 @@ To understand the principle of the *Flowy* waterfall, let's start from the explo
 ### Flowy Group
 
 At first glance a *Group* seems to resemble CommonJS promises, it also matches promise [terminology](http://howtonode.org/promises):
-* *Fulfillment*: When a successful promise is fulfilled, all of the pending callbacks are called with the value. If more callbacks are registered in the future, they will be called with the same value. Fulfilment is the asynchronous analog for returning a value.
-* *Rejection*: When a promise cannot be fulfilled, a promise is 'rejected' which invokes the errbacks that are waiting and remembers the error that was rejected for future errbacks that are attached. Rejection is the asynchronous analog for throwing an exception.
-* *Resolution*: A promise is resolved when it makes progress toward fulfillment or rejection. A promise can only be resolved once, and it can be resolved with a promise instead of a fulfillment or rejection.
-* *Callback*: A function executed if a a promise is fulfilled with a value.
-* *Errback*: A function executed if a promise is rejected, with an exception.
+- *Fulfillment*: When a successful promise is fulfilled, all of the pending callbacks are called with the value. If more callbacks are registered in the future, they will be called with the same value. Fulfilment is the asynchronous analog for returning a value.
+- *Rejection*: When a promise cannot be fulfilled, a promise is 'rejected' which invokes the errbacks that are waiting and remembers the error that was rejected for future errbacks that are attached. Rejection is the asynchronous analog for throwing an exception.
+- *Resolution*: A promise is resolved when it makes progress toward fulfillment or rejection. A promise can only be resolved once, and it can be resolved with a promise instead of a fulfillment or rejection.
+- *Callback*: A function executed if a a promise is fulfilled with a value.
+- *Errback*: A function executed if a promise is rejected, with an exception.
 
 The main difference is that a *Group* should be treated like a group of promises, all executing concurrently, and
-a group would be resolved either every its promise is fulfilled or any of the promises becomes rejected.
+a group would be resolved either every of its promises is fulfilled or any of the promises becomes rejected.
 
 On the group resolution, it will be ready to pass to its callbacks the values of all resolved promises - its *slots*.
 Every slot should be treated as an argument eventually passed to the group's callback: 
@@ -111,25 +111,49 @@ Flowy.group()
 //or
 new Flowy.Group()
 ```
-When it is created, nothing happens. The group keeps the unresolved state until every its slot becomes resolved.
-Freshly created group has no slots, so you'll want to reserve a couple.
+When it is created, nothing happens. The group keeps the unresolved state until each of its slots becomes fulfilled.
+During the slot resolution process may may occur errors. This will will force the group to change its state toward
+rejection. Freshly created group has no slots, so you'll want to reserve a couple.
 
 #### Slot reservation
 All slots reserved in a group will be resolved in parallel. The *order of the slot reservation will be preserved*
-independent of the order of slot resolution.
+independent of the order of slot resolution. All slots will be passed to the group callbacks in this order.
 
 To reserve an asynchronous slot, call `group.slot()`. This method returns a callback function 
 `function(err, data1, data2, ...)`. The slot will be resolved with the first data value passed to its callback.
 If called with a boolean `multi` argument - `group.slot(true)` - the reserved slot will be resolved with an array
 of data values passed to the callback: `[data1, data2, ...]`.
+```javascript
+//reserving a slot for an asynchronous call
+var callback = group.slot();
+fs.readFile(filename, 'utf8', callback);
+//reserving a slot to handle all callback arguments
+group.slot('multi');
+```
 
 To fill one or more slots with immediate values, use `group.pass(value1, value2, ...)`. The corresponding slots
 will be resolved with these values on the next Node tick.
+```javascript
+//passing immediate value side by side with asynchronous data
+group.pass(user);
+model.stats.collectUserStats(user, this.slot());
+//handling both in the same place
+group.then(function (err, user, stats) {
+	//managing user and his statistics
+});
+```
 
-There is also a helper method to reserve a slot: `group.slotGroup()` which returns another group. The slot will be
-resolved on this dedicated group resolution.
+There is also a helper method for an often occuring usage pattern: reserving a slot whose resolution
+will be a result of resolution of another group.
+```javascript
+var group = Flowy.group();
+var nested = Flowy.group();
+nested.then(group.slot('multi'));
 
-The usage examples will be given a bit later.
+//instead, adding a grain of sugar:
+var group = Flowy.group();
+var nested = group.slotGroup();
+```
 
 #### Handling resolution
 A group can be resolved in two ways: successfully or not. To handle these situations, there are four methods.
@@ -154,15 +178,14 @@ group.then(callback, callback);
 Each callback is executed the context (`this` variable) of its own group. 
 Callback methods described above return the future context of the callback, making possible chaining of groups.
 ```javascript
-//a group was acquired elsewhere earlier
-group.then(function() {
-	this.pass('message');
-	model.users.findOne('Alexander', this.slot());
-	var group = this.slotGroup();
-	['Kate', 'Nicky', 'Anna'].forEach(function(girl) {
-		model.users.findOne(girl, group.slot());
+//a group that was acquired elsewhere earlier
+group.then(function(err, message) {
+	this.pass(message); //forwarding immediate value to the next step
+	var nested = this.slotGroup();
+	message.recipients.forEach(function(username) {
+		model.users.findOne(username, nested.slot());
 	})
-}).then(function(err, text, alexander, girls) {
+}).then(function(err, message, users) {
 	//doing stuff
 })
 ```
