@@ -11,7 +11,7 @@ Features:
 - automatic error handling and propagation;
 - uniformly handling asynchronous and synchronous data flow.
 
-    
+
 ## Getting started ##
 
 Without the help of any tool, asynchronous javascript code can quickly become a pain:
@@ -264,21 +264,47 @@ Group.when(err, slot1, slot2);
 ```
 Both methods return group of the chain head.
 
+#### Sharing options through the chain flow
+Group constructor can take an optional `options` argument. This is a key-value
+storage that will be shared between all groups in the chain. An `options` object
+has one special `options.self` field which is mirrored via `group.self` getter.
+```javascript
+Flowy.group({username: 'alex', message: 'hello'}).fcall(function() {
+	model.users.findOne(this.options.username, this.slot());
+}).then(function(err, user) {
+	model.messages.send(user, this.options.message, this.slot());
+});
+```
+
 
 ### Flowy
 Flowy is a thin wrapper that allows composing functions in a group chain.
-```
+```javascript
 Flowy.compose(step1, ..., stepN)
 ``` 
 returns a `function(arg1, ..., argN, callback)` which initiates an execution of
 chained steps passing its `arg1, ..., argN` arguments to the first step as initial values
 and guarantees returning of the eventual result (or error) through its callback.
-
+The context of this function will be stored in the group chain's `options.self` option, 
+thus making it easier to define methods of the classes:
+```javascript
+MessageController.prototype.getUserMessages = Flowy.compose(
+	function(username) {
+		//`users` and `messages` models are fields of the `MessageController`
+		this.self.users.findOne(username, this.slot());
+		this.self.messages.find(username, this.slot());
+	}, function(err, user, messages) {
+		//making something with messages... and eventually:
+		this.pass(messages);
+	}
+);
 ```
+
+There is a shortcut for `Flowy.compose(step1, ..., stepN)(callback)` that immediately runs
+chained steps:
+```javascript
 Flowy(step1, ..., stepN, callback)
 ``` 
-is a shortcut for `Flowy.compose(step1, ..., stepN)(callback)` that immediately runs
-chained steps.
 
 Keeping that in mind, we can rewrite our `getUserMessages` function in the following way:
 ```javascript
@@ -289,9 +315,7 @@ function getUserMessages(username, callback) {
 			model.messages.find(username, this.slot());
 		},
 		function(err, user, messages) {
-			messages.forEach(function(message) {
-				message.recipient = user;
-			});
+			//making something with messages... and eventually:
 			this.pass(messages);
 		},
 		callback
@@ -311,7 +335,7 @@ Flowy.when(/*...*/).then(/*...*/).end(/*...*/);
 ```
 npm install flowy
 ```
-     
+
 ## Testing ##
 
 In project root run:
