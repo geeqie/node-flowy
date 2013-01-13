@@ -164,4 +164,28 @@ describe('Testing group functionality', function() {
             done(err);
         });
     });
+
+    it('Sharing the same `options` object through the chain', function(done) {
+        new G({message: 'hello'}).fcall(function() {
+            this.pass(this.options.message);
+        }).then(function(err, message) {
+            expect(this.options.message).toBe(message);
+            this.options.response = 'hi';
+            this.pass(this.options.response);
+            this.options = {}; //should have no effect
+        }).anyway(function(err, response) {
+            expect(this.options.response).toBe(response);
+            done(err);
+        });
+    });
+
+    it('Shortcut `this.self` for `this.options.self`', function(done) {
+        new G({self: {message: 'hello'}}).fcall(function() {
+            expect(this.self.message).toBe(this.options.self.message);
+            this.pass(this.self);
+        }).anyway(function(err, self) {
+            expect(this.self.message).toBe(self.message);
+            done(err);
+        });
+    });
 });
