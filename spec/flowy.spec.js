@@ -114,4 +114,23 @@ describe('Flowy usage', function() {
             }
         );
     });
+
+    it('saving the context of the composed function', function(done) {
+        var multifun = Flowy.compose(
+            function() {
+                this.pass(this.self);
+            },
+            function(err, self) {
+                expect(this.self).toBe(self);
+                expect(this.self).toBe(this.options.self);
+                this.pass(self);
+            }
+        );
+
+        var context = {message: 'hello'};
+        multifun.call(context, function(err, self) {
+            expect(self.message).toBe(context.message);
+            done(err);
+        });
+    });
 });
