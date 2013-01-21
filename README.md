@@ -136,7 +136,7 @@ will be resolved with these values on the next Node tick.
 ```javascript
 //passing immediate value side by side with asynchronous data
 group.pass(user);
-model.stats.collectUserStats(user, this.slot());
+model.stats.collectUserStats(user, group.slot());
 //handling both in the same place
 group.then(function (err, user, stats) {
 	//managing user and his statistics
