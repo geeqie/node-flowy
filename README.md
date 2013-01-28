@@ -1,6 +1,6 @@
 # Flowy #
 
-A flow-control library for Node.js inspired by [TwoStep](https://github.com/2do2go/node-twostep])
+A flow-control library for Node.js inspired by [TwoStep](https://github.com/2do2go/node-twostep)
 and CommonJS promises (especial appreciation to the [Q library](https://github.com/kriskowal/q)
 for its convenient API design).
 
