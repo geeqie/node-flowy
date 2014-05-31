@@ -1,17 +1,19 @@
-{ 
-	"name": "flowy",
-	"version": "0.2.2",
-	"description": "A flow-control framework for Node.js inspired by CommonJS promises and the Step framework.",
-	"engine": [ "node >=0.2.0" ],
-	"repository": {
-		"type" : "git",
-		"url" : "https://github.com/geeqie/node-flowy"
-	},
-	"devDependencies" : {
-		"jasmine-node": "1.0.21"
-	},
-	"scripts": {
-		"test": "./node_modules/jasmine-node/bin/jasmine-node ./spec/"
-	},
-	"main": "lib/flowy"
+{
+  "name": "flowy",
+  "version": "0.2.2",
+  "description": "A flow-control framework for Node.js inspired by CommonJS promises and the Step framework.",
+  "engine": [
+      "node >=0.2.0"
+  ],
+  "repository": {
+      "type": "git",
+      "url": "https://github.com/maslennikov/node-flowy"
+  },
+  "devDependencies": {
+      "tape": "^2.13.1"
+  },
+  "scripts": {
+      "test": "./node_modules/tape/bin/tape ./spec/*"
+  },
+  "main": "lib/flowy"
 }
