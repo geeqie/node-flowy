@@ -1,7 +1,7 @@
 'use strict';
 
 var test = require('tape'),
-    G = require('../lib/flowy').Group,
+    G = require('../').Group,
     fs = require('fs');
 
 

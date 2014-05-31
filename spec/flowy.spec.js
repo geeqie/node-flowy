@@ -1,7 +1,7 @@
 'use strict';
 
 var test = require('tape'),
-    Flowy = require('../lib/flowy'),
+    Flowy = require('../'),
     fs = require('fs');
 
 var kitty = {name: 'robert', gender: 'male'};

@@ -15,5 +15,5 @@
   "scripts": {
       "test": "./node_modules/tape/bin/tape ./spec/*"
   },
-  "main": "lib/flowy"
+  "main": "index.js"
 }
