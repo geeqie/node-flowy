@@ -1,5 +1,12 @@
 # Flowy #
 
+[![build status](https://secure.travis-ci.org/maslennikov/node-flowy.png)
+](http://travis-ci.org/maslennikov/node-flowy)
+&nbsp;
+[![npm version](http://img.shields.io/npm/v/flowy.svg?style=flat)
+](https://npmjs.org/package/flowy "View on npm")
+
+
 A flow-control library for Node.js inspired by [TwoStep](https://github.com/2do2go/node-twostep)
 and CommonJS promises (especial appreciation to the [Q library](https://github.com/kriskowal/q)
 for its convenient API design).
@@ -17,48 +24,48 @@ Features:
 Without the help of any tool, asynchronous javascript code can quickly become a pain:
 ```javascript
 function leaveMessage(username, text, callback) {
-	model.users.findOne(username, function(err, user) {
-		if (err) return callback(err);
-		if (!user) return callback(new Error('user not found'));
-		model.messages.create(user, text, function(err, message) {
-			if (err) return callback(err);
-			model.notifications.create(message, function(err, notification) {
-				callback(err, notification);
-			});
-		});
-	});
+    model.users.findOne(username, function(err, user) {
+        if (err) return callback(err);
+        if (!user) return callback(new Error('user not found'));
+        model.messages.create(user, text, function(err, message) {
+            if (err) return callback(err);
+            model.notifications.create(message, function(err, notification) {
+                callback(err, notification);
+            });
+        });
+    });
 }
 ```
 
 On the other hand, asynchronous flow management in Node.js can be that simple:
 ```javascript
 function leaveMessage(username, text, callback) {
-	Flowy.chain(function() {
-		model.users.findOne(username, this.slot());
-	}).then(function(err, user) {
-		if (!user) throw new Error('user not found');
-		model.messages.create(user, text, this.slot());
-	}).then(function(err, message) {
-		model.notifications.create(message, this.slot());
-	}).end(callback); //any error will be automatically propagated to this point
+    Flowy.chain(function() {
+        model.users.findOne(username, this.slot());
+    }).then(function(err, user) {
+        if (!user) throw new Error('user not found');
+        model.messages.create(user, text, this.slot());
+    }).then(function(err, message) {
+        model.notifications.create(message, this.slot());
+    }).end(callback); //any error will be automatically propagated to this point
 }
 ```
 or that simple:
 ```javascript
 function leaveMessage(username, text, callback) {
-	Flowy(
-		function() {
-			model.users.findOne(username, this.slot());
-		},
-		function(err, user) {
-			if (!user) throw new Error('user not found');
-			model.messages.create(user, text, this.slot());
-		},
-		function(err, message) {
-			model.notifications.create(message, this.slot());
-		},
-		callback //any error will be automatically propagated to this point
-	);
+    Flowy(
+        function() {
+            model.users.findOne(username, this.slot());
+        },
+        function(err, user) {
+            if (!user) throw new Error('user not found');
+            model.messages.create(user, text, this.slot());
+        },
+        function(err, message) {
+            model.notifications.create(message, this.slot());
+        },
+        callback //any error will be automatically propagated to this point
+    );
 }
 ```
 
@@ -75,7 +82,7 @@ function leaveMessage(username, text, callback) {
 the previous step to the next. Every step is run in the context of Flowy's *Group*, which
 guarantees all the data will be collected before the next step begins. To notify that you want
 to pass any asynchronous data to the next step, you pass to the ordinary async function as a callback
-param one of the Group's hooks (in this example, `this.slot()`). When this callback is eventually 
+param one of the Group's hooks (in this example, `this.slot()`). When this callback is eventually
 called, Group becomes resolved and the flow passes to the next step.
 
 Any error occurred during the step execution (passed to the Group's callback) will be immediately
@@ -101,7 +108,7 @@ The main difference is that a *Group* should be treated like a group of promises
 a group would be resolved either every of its promises is fulfilled or any of the promises becomes rejected.
 
 On the group resolution, it will be ready to pass to its callbacks the values of all resolved promises - its *slots*.
-Every slot should be treated as an argument eventually passed to the group's callback: 
+Every slot should be treated as an argument eventually passed to the group's callback:
 `callback(err, slot1, slot2, ...)`.
 
 #### Creation
@@ -119,9 +126,9 @@ rejection. Freshly created group has no slots, so you'll want to reserve a coupl
 All slots reserved in a group will be resolved in parallel. The *order of the slot reservation will be preserved*
 independent of the order of slot resolution. All slots will be passed to the group callbacks in this order.
 
-To reserve an asynchronous slot, call `group.slot()`. This method returns a callback function 
+To reserve an asynchronous slot, call `group.slot()`. This method returns a callback function
 `function(err, data1, data2, ...)`. The slot will be resolved with the first data value passed to its callback.
-If called with a boolean `multi` argument, the reserved slot will be resolved with an array of data values 
+If called with a boolean `multi` argument, the reserved slot will be resolved with an array of data values
 passed to the callback: `[data1, data2, ...]`.
 ```javascript
 //reserving a slot for an asynchronous call
@@ -139,7 +146,7 @@ group.pass(user);
 model.stats.collectUserStats(user, group.slot());
 //handling both in the same place
 group.then(function (err, user, stats) {
-	//managing user and his statistics
+    //managing user and his statistics
 });
 ```
 
@@ -157,7 +164,7 @@ var nested = group.slotGroup();
 
 #### Handling resolution
 A group can be resolved in two ways: successfully or not. To handle these situations, there are four methods.
-Each of callback methods accepts callbacks in the standard form: `function(err, value1, value2, ...)`. 
+Each of callback methods accepts callbacks in the standard form: `function(err, value1, value2, ...)`.
 ```javascript
 //handling both success and error:
 group.then(callback, errback);
@@ -175,18 +182,18 @@ group.then(callback, callback);
 ```
 
 #### Chaining callbacks
-Each callback is executed the context (`this` variable) of its own group. 
+Each callback is executed the context (`this` variable) of its own group.
 Callback methods described above return the future context of the callback, making possible chaining of groups.
 ```javascript
 //a group that was acquired elsewhere earlier
 group.then(function(err, message) {
-	this.pass(message); //forwarding immediate value to the next step
-	var nested = this.slotGroup();
-	message.recipients.forEach(function(username) {
-		model.users.findOne(username, nested.slot());
-	});
+    this.pass(message); //forwarding immediate value to the next step
+    var nested = this.slotGroup();
+    message.recipients.forEach(function(username) {
+        model.users.findOne(username, nested.slot());
+    });
 }).then(function(err, message, users) {
-	//doing stuff
+    //doing stuff
 })
 ```
 
@@ -195,19 +202,19 @@ If no callback is passed to the group, slots resolved by the group will be propa
 until handled; if no errback is passed to the group, the error will be propagated down the chain in the same way:
 ```javascript
 group.error(
-	new Error('whoops')
+    new Error('whoops')
 ).then(function(err) {
-	//will not be called, error is propagating further
+    //will not be called, error is propagating further
 }).then(null, function(err) {
-	//error was propagated to the nearest handler
-	this.pass(err.message);
+    //error was propagated to the nearest handler
+    this.pass(err.message);
 }).fail(function(err) {
-	//will not be called, error was handled in the previous step
-	//message is propagating further
+    //will not be called, error was handled in the previous step
+    //message is propagating further
 }).anyway(function(err, message) {
-	//if there were no error handlers in the middle, err it would be cought here
-	//message was propagated here 
-	console.log(message);
+    //if there were no error handlers in the middle, err it would be cought here
+    //message was propagated here
+    console.log(message);
 });
 ```
 The drawaback of this approach is the possibility of losing an error thrown from the last callback in the chain.
@@ -222,7 +229,7 @@ group.end(callback);
 There are two ways to manually resolve group ignoring all its reserved slots:
 ```javascript
 //immediately resolve group with the given slots
-group.resolve(err, slot1, slot2, slot3); 
+group.resolve(err, slot1, slot2, slot3);
 
 //resolve group with the given error
 group.error(err); //an alias to group.resolve(err)
@@ -238,23 +245,23 @@ group.fapply(fn, [arg1, arg2, arg3]);
 Each method returns a group to make chaining possible:
 ```javascript
 function getUserMessages(username, callback) {
-	//we could do it better with Group.chain() method
-	Flowy.group().fcall(function() {
-		model.users.findOne(username, this.slot());
-		model.messages.find(username, this.slot());
-	}).then(function(err, user, messages) {
-		messages.forEach(function(message) {
-			message.recipient = user;
-		});
-		this.pass(messages);
-	}).end(callback)
+    //we could do it better with Group.chain() method
+    Flowy.group().fcall(function() {
+        model.users.findOne(username, this.slot());
+        model.messages.find(username, this.slot());
+    }).then(function(err, user, messages) {
+        messages.forEach(function(message) {
+            message.recipient = user;
+        });
+        this.pass(messages);
+    }).end(callback)
 }
 ```
 
 #### Starting a chain
 To make starting a chain easier, there are two static methods of the `Group` class:
 ```javascript
-//starting a chain with the function, 
+//starting a chain with the function,
 //analogous to `new Group().fcall(fn, arg1, arg2)`
 Group.chain(fn, arg1, arg2);
 
@@ -270,9 +277,9 @@ storage that will be shared between all groups in the chain. An `options` object
 has one special `options.self` field which is mirrored via `group.self` getter.
 ```javascript
 Flowy.group({username: 'alex', message: 'hello'}).fcall(function() {
-	model.users.findOne(this.options.username, this.slot());
+    model.users.findOne(this.options.username, this.slot());
 }).then(function(err, user) {
-	model.messages.send(user, this.options.message, this.slot());
+    model.messages.send(user, this.options.message, this.slot());
 });
 ```
 
@@ -281,22 +288,22 @@ Flowy.group({username: 'alex', message: 'hello'}).fcall(function() {
 Flowy is a thin wrapper that allows composing functions in a group chain.
 ```javascript
 Flowy.compose(step1, ..., stepN)
-``` 
+```
 returns a `function(arg1, ..., argN, callback)` which initiates an execution of
 chained steps passing its `arg1, ..., argN` arguments to the first step as initial values
 and guarantees returning of the eventual result (or error) through its callback.
-The context of this function will be stored in the group chain's `options.self` option, 
+The context of this function will be stored in the group chain's `options.self` option,
 thus making it easier to define methods of the classes:
 ```javascript
 MessageController.prototype.getUserMessages = Flowy.compose(
-	function(username) {
-		//`users` and `messages` models are fields of the `MessageController`
-		this.self.users.findOne(username, this.slot());
-		this.self.messages.find(username, this.slot());
-	}, function(err, user, messages) {
-		//making something with messages... and eventually:
-		this.pass(messages);
-	}
+    function(username) {
+        //`users` and `messages` models are fields of the `MessageController`
+        this.self.users.findOne(username, this.slot());
+        this.self.messages.find(username, this.slot());
+    }, function(err, user, messages) {
+        //making something with messages... and eventually:
+        this.pass(messages);
+    }
 );
 ```
 
@@ -304,22 +311,22 @@ There is a shortcut for `Flowy.compose(step1, ..., stepN)(callback)` that immedi
 chained steps:
 ```javascript
 Flowy(step1, ..., stepN, callback)
-``` 
+```
 
 Keeping that in mind, we can rewrite our `getUserMessages` function in the following way:
 ```javascript
 function getUserMessages(username, callback) {
-	Flowy(
-		function() {
-			model.users.findOne(username, this.slot());
-			model.messages.find(username, this.slot());
-		},
-		function(err, user, messages) {
-			//making something with messages... and eventually:
-			this.pass(messages);
-		},
-		callback
-	);
+    Flowy(
+        function() {
+            model.users.findOne(username, this.slot());
+            model.messages.find(username, this.slot());
+        },
+        function(err, user, messages) {
+            //making something with messages... and eventually:
+            this.pass(messages);
+        },
+        callback
+    );
 }
 ```
 
@@ -341,7 +348,7 @@ npm install flowy
 In project root run:
 ```
 npm install
-``` 
+```
 After all development dependencies are installed run:
 ```
 npm test
