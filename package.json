@@ -10,10 +10,11 @@
     "url": "https://github.com/maslennikov/node-flowy"
   },
   "devDependencies": {
+    "tap-dot": "^1.0.0",
     "tape": "^2.13.1"
   },
   "scripts": {
-    "test": "./node_modules/tape/bin/tape ./spec/*"
+    "test": "./node_modules/tape/bin/tape ./spec/* | tap-dot"
   },
   "main": "index.js"
 }
