@@ -43,6 +43,13 @@ test('Handle all response arguments of the async call', function(assert) {
     });
 });
 
+test('Forgetting to call slot() when passing as a callback', function(assert) {
+    var group = new G();
+    //assert.throws() will try to call it without providing `this`
+    assert.throws(group.slot, /Forgot to call/);
+    assert.end();
+});
+
 test('Starting chain with `when`', function(assert) {
     var error = new Error('hello');
     G.when(
