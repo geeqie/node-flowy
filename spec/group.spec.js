@@ -13,10 +13,22 @@ function asyncKitty(callback/*(err, value)*/) {
     });
 }
 
+function errorKitty(callback/*(err, value)*/) {
+    process.nextTick(function() {
+        callback(new Error('shucks'));
+    });
+}
+
 function asyncSpreadKitty(callback/*(err, name, gender)*/) {
     process.nextTick(function() {
         callback(null, kitty.name, kitty.gender);
     });
+}
+
+function promiseKitty(asyncFn) {
+    var group = new G();
+    asyncFn(group.slot());
+    return group;
 }
 
 
@@ -233,6 +245,31 @@ test('Handling error in slotGroup', function(assert) {
         });
     }).anyway(function(err) {
         assert.equal(err, 'Boom');
+        assert.end();
+    });
+});
+
+test('Handling promises with pslot', function(assert) {
+    G.chain(function() {
+        this.pslot(promiseKitty(asyncKitty));
+        this.pslot(promiseKitty(asyncSpreadKitty));
+    }).anyway(function(err, val1, val2) {
+        assert.error(err);
+        assert.equal(val1, kitty);
+        //not having 'multi' functionality with promises
+        assert.equal(val2, kitty.name);
+        assert.end();
+    });
+});
+
+test('Handling promise error with pslot', function(assert) {
+    G.chain(function(err, val1, val2) {
+        this.pslot(promiseKitty(errorKitty));
+        this.pass();
+    }).then(function() {
+        assert.fail('should not be here');
+    }).anyway(function(err) {
+        assert.equal(err.message, 'shucks');
         assert.end();
     });
 });

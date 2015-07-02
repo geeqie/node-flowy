@@ -164,6 +164,18 @@ Group.prototype.slot = function slot(multi) {
 };
 
 /**
+ * Reserve one slot of the group to be resolved with resolution value of passed
+ * promise. Promise chain will be end()-ed.
+ *
+ * @param {thenable} promise
+ */
+Group.prototype.pslot = function slot(thenable) {
+    //todo: do we need 'multi' functionality with promises?
+    var cb = this.slot();
+    thenable.then(cb, cb).end();
+};
+
+/**
  * Creates a nested group, all results of which will be put
  * into the reserved slot as a single array.
  */

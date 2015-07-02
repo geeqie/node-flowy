@@ -150,6 +150,17 @@ group.then(function (err, user, stats) {
 });
 ```
 
+Slot can also be resolved with a
+[thenable](https://github.com/promises-aplus/promises-spec) promise via a `pslot()` method:
+```javascript
+//passing a thenable promise to resolve the slot
+var thenable = returnsPromise();
+group.pslot(thenable);
+group.anyway(function (err, user, stats) {
+    //any error in thenable will also be properly caught here
+});
+```
+
 There is also a helper method for an often occuring usage pattern: reserving a slot whose resolution
 will be a result of resolution of another group.
 ```javascript
