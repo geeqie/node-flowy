@@ -175,11 +175,12 @@ Group.prototype.slotGroup = function() {
 
 /**
  * Wrapper for passing synchronous values to the next step.
- * Each value will be placed in the separate slot.
+ * Each value will be placed in the separate slot. If no arguments provided, a
+ * single slot will be reserved with the 'undefined' value.
  */
 Group.prototype.pass = function pass(/*values*/) {
     var values = slice(arguments);
-    for (var i = 0; i < values.length; i++) {
+    for (var i = 0; i < (values.length || 1); i++) {
         this.slot()(null, values[i]);
     }
 };

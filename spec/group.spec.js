@@ -66,6 +66,37 @@ test('Starting chain with `when`', function(assert) {
     });
 });
 
+test('Resolving group with synchronous data via `pass`', function(assert) {
+    G.chain(function() {
+        this.pass();
+    }).then(function(err, val) {
+        assert.error(err);
+        assert.equal(arguments.length, 2);
+        assert.equal(val, undefined);
+
+        this.pass('one', 'two', 'three');
+        this.pass([1, 2, 3]);
+    }).then(function(err, val1, val2, val3, val4) {
+        assert.error(err);
+        assert.deepEqual(
+            [].slice.call(arguments, 1),
+            ['one', 'two', 'three', [1, 2, 3]]);
+
+        this.pass(null);
+        this.pass(undefined);
+        this.pass(0);
+        this.pass('');
+        this.pass();
+    }).then(function(err) {
+        assert.error(err);
+        assert.deepEqual(
+            [].slice.call(arguments, 1),
+            [null, undefined, 0, '', undefined]);
+
+        assert.end();
+    });
+});
+
 test('Wrapping two concurrent async calls', function(assert) {
     G.chain(function() {
         asyncKitty(this.slot());
