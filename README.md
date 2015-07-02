@@ -155,11 +155,11 @@ will be a result of resolution of another group.
 ```javascript
 var group = Flowy.group();
 var nested = Flowy.group();
-nested.then(group.slot('multi'));
+nested.anyway(group.slot('multi'));
 
 //instead, adding a grain of sugar:
 var group = Flowy.group();
-var nested = group.slotGroup();
+var nested = group.subgroup();
 ```
 
 #### Handling resolution
@@ -188,7 +188,7 @@ Callback methods described above return the future context of the callback, maki
 //a group that was acquired elsewhere earlier
 group.then(function(err, message) {
     this.pass(message); //forwarding immediate value to the next step
-    var nested = this.slotGroup();
+    var nested = this.subgroup();
     message.recipients.forEach(function(username) {
         model.users.findOne(username, nested.slot());
     });

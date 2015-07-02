@@ -201,6 +201,12 @@ test('Handling errors in the middle', function(assert) {
     });
 });
 
+test('slotGroup is an alias for subgroup', function(assert) {
+    var g = new G();
+    assert.equal(g.subgroup, g.slotGroup);
+    assert.end();
+});
+
 test('Creating dependent group via slotGroup', function(assert) {
     G.chain(function() {
         this.pass('pass');

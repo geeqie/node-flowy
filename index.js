@@ -167,6 +167,7 @@ Group.prototype.slot = function slot(multi) {
  * Creates a nested group, all results of which will be put
  * into the reserved slot as a single array.
  */
+Group.prototype.subgroup =
 Group.prototype.slotGroup = function() {
     var group = new Group();
     group.anyway(this.slot('multi'));
