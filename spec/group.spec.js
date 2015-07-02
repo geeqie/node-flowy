@@ -219,6 +219,18 @@ test('Creating dependent group via slotGroup', function(assert) {
     });
 });
 
+test('Handling error in slotGroup', function(assert) {
+    G.chain(function() {
+        this.pass('pass');
+        this.slotGroup().fcall(function() {
+            throw 'Boom';
+        });
+    }).anyway(function(err) {
+        assert.equal(err, 'Boom');
+        assert.end();
+    });
+});
+
 test('Sharing the same `options` object through the chain', function(assert) {
     new G({message: 'hello'}).fcall(function() {
         this.pass(this.options.message);

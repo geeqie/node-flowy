@@ -169,7 +169,7 @@ Group.prototype.slot = function slot(multi) {
  */
 Group.prototype.slotGroup = function() {
     var group = new Group();
-    group.then(this.slot('multi'));
+    group.anyway(this.slot('multi'));
     return group;
 };
 
